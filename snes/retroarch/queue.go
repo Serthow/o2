@@ -1,16 +1,11 @@
 package retroarch
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
-	"log"
 	"o2/snes"
-	"o2/snes/lorom"
 	"o2/udpclient"
-	"strings"
 	"sync"
-	"time"
 )
 
 type Queue struct {
@@ -128,88 +123,11 @@ func (cmd *readCommand) Execute(queue snes.Queue, keepAlive snes.KeepAlive) (err
 	}
 	keepAlive <- struct{}{}
 
-	// build multiple requests:
-	var sb strings.Builder
-	for _, req := range cmd.Batch {
-		// nowhere to put the response?
-		completed := req.Completion
-		if completed == nil {
-			continue
-		}
-
-		sb.WriteString("READ_CORE_RAM ")
-		expectedAddr := lorom.PakAddressToBus(req.Address)
-		sb.WriteString(fmt.Sprintf("%06x %d\n", expectedAddr, req.Size))
-	}
-
-	reqStr := sb.String()
-	var rsp []byte
-
-	defer func() {
-		c.Unlock()
-		if err != nil {
-			q.Close()
-		}
-	}()
-	c.Lock()
-
-	// send all commands up front in one packet:
-	err = c.WriteTimeout([]byte(reqStr), time.Second*5)
+	err = c.ReadMemoryBatch(cmd.Batch, keepAlive)
 	if err != nil {
-		return
-	}
-	keepAlive <- struct{}{}
-
-	// responses come in multiple packets:
-	for _, req := range cmd.Batch {
-		// nowhere to put the response?
-		completed := req.Completion
-		if completed == nil {
-			continue
-		}
-
-		expectedAddr := lorom.PakAddressToBus(req.Address)
-
-		rsp, err = c.ReadTimeout(time.Second * 5)
-		if err != nil {
-			return
-		}
-		keepAlive <- struct{}{}
-
-		// parse ASCII response:
-		r := bytes.NewReader(rsp)
-
-		var n int
-		var addr uint32
-		n, err = fmt.Fscanf(r, "READ_CORE_RAM %x", &addr)
-		if err != nil {
-			return
-		}
-		if addr != expectedAddr {
-			err = fmt.Errorf("retroarch: read response for wrong request %06x != %06x", addr, expectedAddr)
-			return
-		}
-
-		data := make([]byte, 0, req.Size)
-		for {
-			var v byte
-			n, err = fmt.Fscanf(r, " %02x", &v)
-			if err != nil || n == 0 {
-				break
-			}
-			data = append(data, v)
-		}
-
-		completed(snes.Response{
-			IsWrite: false,
-			Address: req.Address,
-			Size:    req.Size,
-			Extra:   req.Extra,
-			Data:    data,
-		})
+		_ = q.Close()
 	}
 
-	err = nil
 	return
 }
 
@@ -233,42 +151,10 @@ func (cmd *writeCommand) Execute(queue snes.Queue, keepAlive snes.KeepAlive) (er
 	}
 	keepAlive <- struct{}{}
 
-	for _, req := range cmd.Batch {
-		var sb strings.Builder
-		sb.WriteString("WRITE_CORE_RAM ")
-		sb.WriteString(fmt.Sprintf("%06x ", lorom.PakAddressToBus(req.Address)))
-		// emit hex data:
-		lasti := len(req.Data) - 1
-		for i, v := range req.Data {
-			sb.WriteByte(hextable[(v>>4)&0xF])
-			sb.WriteByte(hextable[v&0xF])
-			if i < lasti {
-				sb.WriteByte(' ')
-			}
-		}
-		sb.WriteByte('\n')
-		reqStr := sb.String()
-
-		log.Printf("retroarch: > %s", reqStr)
-		err = q.c.WriteTimeout([]byte(reqStr), time.Second*5)
-		if err != nil {
-			q.Close()
-			return
-		}
-		keepAlive <- struct{}{}
-
-		completed := req.Completion
-		if completed != nil {
-			completed(snes.Response{
-				IsWrite: true,
-				Address: req.Address,
-				Size:    req.Size,
-				Extra:   req.Extra,
-				Data:    req.Data,
-			})
-		}
+	err = c.WriteMemoryBatch(cmd.Batch, keepAlive)
+	if err != nil {
+		_ = q.Close()
 	}
 
-	err = nil
 	return
 }
