@@ -1,2 +1,2 @@
-goreleaser build
-read -p ""
+goreleaser --snapshot --skip-publish --rm-dist
+read -p "DONE"
