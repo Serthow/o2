@@ -47,6 +47,10 @@ type Game struct {
 	clockQueried time.Time
 	ntpC         chan int
 
+	lastServerTime     time.Time // server's clock when the echo message arrived at server
+	lastServerSentTime time.Time // our local clock when we sent the echo message
+	lastServerRecvTime time.Time // our local clock when we received the echo reply
+
 	running bool
 	stopped chan struct{}
 
@@ -118,13 +122,15 @@ func (f *Factory) NewGame(rom *snes.ROM) games.Game {
 	}
 
 	g := &Game{
-		rom:              rom,
-		running:          false,
-		stopped:          make(chan struct{}),
-		readComplete:     make(chan []snes.Response, 256),
-		romFunctions:     make(map[romFunction]uint32),
-		lastUpdateTarget: 0xFFFFFF,
-		ntpC:             make(chan int, 16),
+		rom:                rom,
+		running:            false,
+		stopped:            make(chan struct{}),
+		readComplete:       make(chan []snes.Response, 256),
+		romFunctions:       make(map[romFunction]uint32),
+		lastUpdateTarget:   0xFFFFFF,
+		ntpC:               make(chan int, 16),
+		lastServerSentTime: time.Now(),
+		lastServerRecvTime: time.Now(),
 		// ViewModel:
 		IsCreated:        true,
 		GameName:         gameName,
@@ -139,7 +145,7 @@ func (f *Factory) NewGame(rom *snes.ROM) games.Game {
 		lastSyncChests:   false,
 	}
 
-	go g.ntpQueryLoop()
+	//go g.ntpQueryLoop()
 
 	g.initSerde()
 	g.fillRomFunctions()
@@ -337,4 +343,28 @@ func (g *Game) RemoteSyncablePlayers() []games.SyncablePlayer {
 		remotePlayers = append(remotePlayers, p)
 	}
 	return remotePlayers
+}
+
+func (g *Game) ServerNow() time.Time {
+	return g.lastServerTime.Add(time.Now().Sub(g.lastServerRecvTime))
+}
+
+// ServerSNESTimestamp returns ServerNow() time in milliseconds quantized to idealized SNES framerate
+func (g *Game) ServerSNESTimestamp() time.Time {
+	// SNES master clock ~= 1.89e9/88 Hz
+	// SNES runs 1 scanline every 1364 master cycles
+	// Frames are 262 scanlines in non-interlace mode (1 scanline takes 1360 clocks every other frame)
+	// 1 frame takes 357366 master clocks
+	const snes_frame_clocks = (261 * 1364) + 1362
+
+	const snes_frame_nanoclocks = snes_frame_clocks * 1_000_000_000
+
+	// 1 frame takes 0.016639356613757 seconds
+	// 0.016639356613757 seconds = 16,639,356.613757 nanoseconds
+
+	const snes_frame_time_nanoseconds_int = int64(snes_frame_nanoclocks) / (int64(1.89e9) / int64(88))
+
+	st := g.ServerNow()
+	sn := (st.UnixNano() / snes_frame_time_nanoseconds_int) * snes_frame_time_nanoseconds_int
+	return time.Unix(0, sn)
 }

@@ -13,6 +13,8 @@ import (
 
 const driverName = "retroarch"
 
+var logDetector = false
+
 type Driver struct {
 	detectors []*RAClient
 
@@ -101,16 +103,22 @@ func (d *Driver) Detect() (devices []snes.DeviceDescriptor, err error) {
 			detector.version = ""
 			err = detector.Connect(detector.addr)
 			if err != nil {
-				log.Printf("retroarch: detect: detector[%d]: connect: %v\n", i, err)
+				if logDetector {
+					log.Printf("retroarch: detect: detector[%d]: connect: %v\n", i, err)
+				}
 				continue
 			}
 		}
 
 		// not a valid device without a version detected:
-		err = detector.Version()
-		if err != nil {
-			log.Printf("retroarch: detect: detector[%d]: version: %v\n", i, err)
-			continue
+		if !detector.HasVersion() {
+			err = detector.Version()
+			if err != nil {
+				if logDetector {
+					log.Printf("retroarch: detect: detector[%d]: version: %v\n", i, err)
+				}
+				continue
+			}
 		}
 		if !detector.HasVersion() {
 			continue
@@ -130,7 +138,6 @@ func (d *Driver) Detect() (devices []snes.DeviceDescriptor, err error) {
 			addr:                 detector.addr,
 		}
 
-		//log.Printf("%s: > %s", detector.addr, rsps)
 		if len(data) != 32 {
 			descriptor.IsGameLoaded = false
 		} else {
@@ -188,6 +195,11 @@ func init() {
 		}
 
 		addresses = append(addresses, addr)
+	}
+
+	if util.IsTruthy(env.GetOrDefault("O2_RETROARCH_DETECT_LOG", "0")) {
+		logDetector = true
+		log.Printf("enabling retroarch detector logging")
 	}
 
 	// register the driver:
