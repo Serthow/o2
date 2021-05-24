@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 	"io/ioutil"
-	"o2/games/alttp"
+	"o2/games/smz3"
 	"o2/snes"
 	"os"
 	"path/filepath"

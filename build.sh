@@ -1,1 +1,2 @@
-goreleaser --snapshot --skip-publish --rm-dist
+goreleaser build
+read -p ""
