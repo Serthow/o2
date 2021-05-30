@@ -27,6 +27,7 @@ import (
 import (
 	_ "o2/games"
 	_ "o2/games/alttp"
+  _ "o2/games/smz3"
 )
 
 // build variables set via ldflags by goreleaser:

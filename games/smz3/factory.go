@@ -5,7 +5,7 @@ import (
 	"o2/snes"
 )
 
-var gameName = "ALTTP"
+var gameName = "SMZ3"
 
 type Factory struct{}
 

@@ -108,7 +108,7 @@ type Game struct {
 
 func (f *Factory) NewGame(rom *snes.ROM) games.Game {
 	if rom == nil {
-		panic("alttp: rom cannot be nil")
+		panic("smz3: rom cannot be nil")
 	}
 
 	g := &Game{
@@ -143,7 +143,7 @@ func (g *Game) Name() string {
 }
 
 func (g *Game) Title() string {
-	return "ALTTP"
+	return "SMZ3"
 }
 
 func (g *Game) Description() string {
@@ -154,7 +154,7 @@ func (g *Game) LoadConfiguration(config json.RawMessage) {
 	// kind of dirty to just unmarshal the public `json` tagged fields, but it works:
 	err := json.Unmarshal(config, g)
 	if err != nil {
-		log.Printf("alttp: loadConfiguration: %v\n", err)
+		log.Printf("smz3: loadConfiguration: %v\n", err)
 		return
 	}
 	g.IsCreated = true

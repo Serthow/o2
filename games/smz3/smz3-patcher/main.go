@@ -31,7 +31,7 @@ func main() {
 	}
 
 	// check what the alttp Factory instance thinks of this ROM:
-	factoryInstance := alttp.FactoryInstance()
+	factoryInstance := smz3.FactoryInstance()
 	isBestProvider := factoryInstance.IsROMSupported(rom)
 	supported, whyNot := factoryInstance.CanPlay(rom)
 	fmt.Printf("ROM is/should be supported? %v\n", isBestProvider)
@@ -45,7 +45,7 @@ func main() {
 	}
 
 	// patch the ROM:
-	patcher := alttp.NewPatcher(rom)
+	patcher := smz3.NewPatcher(rom)
 	err = patcher.Patch()
 	if err != nil {
 		panic(err)
