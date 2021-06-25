@@ -52,7 +52,8 @@ func (g *Game) sendPackets() {
 		// Broadcast items and progress SRAM:
 		m := g.makeGamePacket(protocol02.Broadcast)
 		if m != nil {
-			if g.isVTRandomizer() {
+      // TODO: update to only use one protocol, since there's only one smz3
+			if g.isVTRandomizer(){
 				// VT randomizer:
 				if err := g.SerializeSRAM(local, m, 0x340, 0x43A); err != nil {
 					panic(err)

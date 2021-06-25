@@ -19,7 +19,7 @@ const (
 )
 
 func (g *Game) isVTRandomizer() bool {
-	return string(g.rom.Header.Title[0:3]) == "VT "
+	return true
 }
 
 func (g *Game) fillRomFunctions() {

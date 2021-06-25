@@ -121,7 +121,7 @@ func NewROM(name string, contents []byte) (r *ROM, err error) {
 		return nil, fmt.Errorf("ROM file not big enough to contain SNES header")
 	}
 
-	headerOffset := uint32(0x007FB0)
+	headerOffset := uint32(0x00FFB0)
 
 	r = &ROM{
 		Name:         name,
@@ -247,6 +247,7 @@ func (r *ROM) RAMSize() uint32 {
 
 func (r *ROM) BusAddressToPC(busAddr uint32) uint32 {
 	// TODO: determine based on LoROM/HiROM mapping from header
+  return busAddr
 	return lorom.BusAddressToPC(busAddr)
 }
 
@@ -287,8 +288,8 @@ func (r *ROM) BusReader(busAddr uint32) io.Reader {
 
 	// Return a reader over the ROM contents up to the next bank to prevent accidental overflow:
 	bank := busAddr >> 16
-	pcStart := (bank << 15) | (page - 0x8000)
-	pcEnd := (bank << 15) | 0x7FFF
+	pcStart := (bank << 16) | (page)
+	pcEnd := (bank << 16) | 0xFFFF
 	return bytes.NewReader(r.Contents[pcStart:pcEnd])
 }
 

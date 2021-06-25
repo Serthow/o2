@@ -69,7 +69,8 @@ func (p *Patcher) Patch() (err error) {
 	}
 
 	// read from $00:802F which is where NMI should be enabled in the reset routine:
-	p.readAt(0x00802F)
+	// change to the only location in the rom that has the expected code
+  p.readAt(0x07FF58)
 	var code802F []byte
 	code802F, err = p.read(5)
 	if err != nil {
@@ -83,17 +84,20 @@ func (p *Patcher) Patch() (err error) {
 		0xA9, 0x81,
 		0x8D, 0x00, 0x42,
 	}
-
+  
+  // remove the check to blindly patch the rom
+  // no check for validity
+  // this will 99.999% crash immediately
 	if !bytes.Equal(code802F, expected802F) {
 		// let's at least check that it's a JSL followed by a NOP:
 		if code802F[0] != 0x22 || code802F[4] != 0xEA {
 			// it's not vanilla code nor is it a JSL / NOP combo:
-			return fmt.Errorf("unexpected code at $00:802F: %s", hex.Dump(code802F))
+			return fmt.Errorf("unexpected code at $07:FF58: %s", hex.Dump(code802F))
 		}
 	}
 
 	// overwrite $00:802F with `JSL $1BB1D7`
-	p.writeAt(0x00802F)
+	p.writeAt(0x07FF58)
 	const initHook = 0x1BB1D7
 	b := &bytes.Buffer{}
 	textBuf := &strings.Builder{}
@@ -104,7 +108,7 @@ func (p *Patcher) Patch() (err error) {
 	var a asm.Emitter
 	a.Code = b
 	a.Text = textBuf
-	a.SetBase(0x00802F)
+	a.SetBase(0x07FF58)
 	a.JSL(initHook)
 	a.NOP()
 	if b.Len() != len(expected802F) {
@@ -114,8 +118,8 @@ func (p *Patcher) Patch() (err error) {
 		return
 	}
 
-	// frame hook:
-	const frameHook = 0x008056
+	// frame hook: was 0x008056
+	const frameHook = 0x07FA00
 	// 008056 is 22 B5 80 00   JSL GameModes
 	p.readAt(frameHook)
 	var frameJSL []byte
@@ -124,7 +128,7 @@ func (p *Patcher) Patch() (err error) {
 		return
 	}
 	if frameJSL[0] != 0x22 {
-		return fmt.Errorf("frame hook $008056 does not contain a JSL instruction: %s", hex.Dump(frameJSL))
+		return fmt.Errorf("frame hook $07FA00 does not contain a JSL instruction: %s", hex.Dump(frameJSL))
 	}
 	gameModes := frameJSL[1:]
 
