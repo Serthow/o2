@@ -40,5 +40,6 @@ content/*.mp4
 content/*.zip
 webui/o2/o2
 debug/
+webui/web/Build_Web_UI.sh
 webui/o2/debug build.sh
 webui/web/package-lock.json
