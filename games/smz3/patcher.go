@@ -14,9 +14,9 @@ import (
 const (
 	preMainLen = 8
 	// SRAM address of preMain routine called nearly every frame before `JSL GameModes`
-	preMainAddr        = uint32(0x708000 - preMainLen) // STEP1
-	preMainUpdateAAddr = uint32(0x707C00) // STEP1
-	preMainUpdateBAddr = uint32(0x707E00) //  STEP1
+	preMainAddr        = uint32(0x008053 - preMainLen) // STEP1
+	preMainUpdateAAddr = uint32(0x007C53) // STEP1
+	preMainUpdateBAddr = uint32(0x007E53) //  STEP1
 )
 
 type Patcher struct {
@@ -85,9 +85,6 @@ func (p *Patcher) Patch() (err error) {
 		0x8D, 0x00, 0x42,
 	}
   
-  // remove the check to blindly patch the rom
-  // no check for validity
-  // this will 99.999% crash immediately
 	if !bytes.Equal(code802F, expected802F) {
 		// let's at least check that it's a JSL followed by a NOP:
 		if code802F[0] != 0x22 || code802F[4] != 0xEA {

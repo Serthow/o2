@@ -71,12 +71,12 @@ func (g *Game) updateWRAM() {
 	log.Print(a.Text.String())
 
 	if a.Code.Len() > 255 {
-		panic(fmt.Errorf("alttp: generated update ASM larger than 255 bytes: %d", a.Code.Len()))
+		panic(fmt.Errorf("smz3: generated update ASM larger than 255 bytes: %d", a.Code.Len()))
 	}
 
 	// prevent more updates until the upcoming write completes:
 	g.updateStage = 1
-	log.Println("alttp: update: write started")
+	log.Println("smz3: update: write started")
 
 	// calculate target address in FX Pak Pro address space:
 	// SRAM starts at $E00000
@@ -101,13 +101,13 @@ func (g *Game) updateWRAM() {
 			},
 		},
 		func(cmd snes.Command, err error) {
-			log.Println("alttp: update: write completed")
+			log.Println("smz3: update: write completed")
 
 			defer g.updateLock.Unlock()
 			g.updateLock.Lock()
 
 			if g.updateStage != 1 {
-				log.Printf("alttp: update: write complete but updateStage = %d (should be 1)\n", g.updateStage)
+				log.Printf("smz3: update: write complete but updateStage = %d (should be 1)\n", g.updateStage)
 			}
 
 			g.updateStage = 2
@@ -120,13 +120,13 @@ func (g *Game) updateWRAM() {
 		},
 	).EnqueueTo(q)
 	if err != nil {
-		log.Println(fmt.Errorf("alttp: update: error enqueuing snes write for update routine: %w", err))
+		log.Println(fmt.Errorf("smz3: update: error enqueuing snes write for update routine: %w", err))
 		return
 	}
 }
 
 func (g *Game) enqueueUpdateCheckRead(q []snes.Read) []snes.Read {
-	log.Println("alttp: update: enqueueUpdateCheckRead")
+	log.Println("smz3: update: enqueueUpdateCheckRead")
 	// read the first instruction of the last update routine to check if it completed (if it's a RTS):
 	addr := g.lastUpdateTarget
 	if addr != 0xFFFFFF {

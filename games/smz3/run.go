@@ -46,7 +46,7 @@ func (g *Game) readSubmit(readQueue []snes.Read) {
 			g.readResponseLock.Unlock()
 
 			if err != nil {
-				log.Printf("alttp: readSubmit: complete: %s\n", err)
+				log.Printf("smz3: readSubmit: complete: %s\n", err)
 			}
 
 			// inform the main loop:
@@ -54,13 +54,13 @@ func (g *Game) readSubmit(readQueue []snes.Read) {
 		},
 	)
 
-	//log.Printf("alttp: readSubmit: enqueue start %d reads\n", len(readQueue))
+	//log.Printf("smz3: readSubmit: enqueue start %d reads\n", len(readQueue))
 	err := sequence.EnqueueTo(q)
 	if err != nil {
-		log.Printf("alttp: readSubmit: enqueue: %s\n", err)
+		log.Printf("smz3: readSubmit: enqueue: %s\n", err)
 		return
 	}
-	//log.Printf("alttp: readSubmit: enqueue complete\n")
+	//log.Printf("smz3: readSubmit: enqueue complete\n")
 }
 
 const debugSprites = false
@@ -82,7 +82,7 @@ func (g *Game) run() {
 	defer func() {
 		fastbeat.Stop()
 		slowbeat.Stop()
-		log.Println("alttp: run loop exited")
+		log.Println("smz3: run loop exited")
 	}()
 
 	for g.running {
@@ -135,7 +135,7 @@ func (g *Game) run() {
 				// make sure a read request is always in flight to keep our main loop running:
 				timeSinceRead := time.Now().Sub(g.lastReadCompleted)
 				if timeSinceRead >= time.Millisecond*512 {
-					log.Printf("alttp: fastbeat: enqueue main reads; %d msec since last read\n", timeSinceRead.Milliseconds())
+					log.Printf("smz3: fastbeat: enqueue main reads; %d msec since last read\n", timeSinceRead.Milliseconds())
 					q := make([]snes.Read, 0, 8)
 					q = g.enqueueWRAMReads(q)
 					// must always read module number LAST to validate the prior reads:
@@ -237,7 +237,7 @@ func (g *Game) enqueueWRAMReads(q []snes.Read) []snes.Read {
 	q = g.readEnqueue(q, 0xF50400, 0x20, 0) // [$0400..$041F]
 	// $1980..19E9 for reading underworld door state
 	q = g.readEnqueue(q, 0xF51980, 0x6A, 0) // [$1980..$19E9]
-	// ALTTP's SRAM copy in WRAM:
+	// smz3's SRAM copy in WRAM:
 	q = g.readEnqueue(q, 0xF5F340, 0xFF, 0) // [$F340..$F43E]
 	// Link's palette:
 	q = g.readEnqueue(q, 0xF5C6E0, 0x20, 0)
@@ -270,11 +270,11 @@ func (g *Game) readMainComplete(rsps []snes.Response) []snes.Read {
 		// handle update routine check:
 		g.updateLock.Lock()
 		if rsp.Address == g.lastUpdateTarget {
-			log.Printf("alttp: update: check: $%06x [$%02x] == $60\n", rsp.Address, rsp.Data[0])
+			log.Printf("smz3: update: check: $%06x [$%02x] == $60\n", rsp.Address, rsp.Data[0])
 			// when executed, the routine replaces its first instruction with RTS ($60):
 			if rsp.Data[0] == 0x60 {
 				// allow next update:
-				log.Printf("alttp: update: complete: $%06x [$%02x] == $60\n", rsp.Address, rsp.Data[0])
+				log.Printf("smz3: update: complete: $%06x [$%02x] == $60\n", rsp.Address, rsp.Data[0])
 				if g.updateStage == 2 {
 					g.updateStage = 0
 					g.nextUpdateA = !g.nextUpdateA
@@ -298,14 +298,14 @@ func (g *Game) readMainComplete(rsps []snes.Response) []snes.Read {
 	// validate new reads in staging area before copying to wram/sram:
 	if moduleStaging <= 0x06 || moduleStaging >= 0x1B {
 		if !g.invalid {
-			log.Println("alttp: game now in invalid state")
+			log.Println("smz3: game now in invalid state")
 		}
 		g.invalid = true
 		return q
 	}
 
 	if g.invalid {
-		log.Println("alttp: game now in valid state")
+		log.Println("smz3: game now in valid state")
 		g.invalid = false
 	}
 
@@ -321,7 +321,7 @@ func (g *Game) readMainComplete(rsps []snes.Response) []snes.Read {
 		}
 	}
 
-	//log.Printf("alttp: read %d responses\n", len(rsps))
+	//log.Printf("smz3: read %d responses\n", len(rsps))
 
 	// assign local variables from WRAM:
 	local := g.LocalPlayer()
@@ -331,7 +331,7 @@ func (g *Game) readMainComplete(rsps []snes.Response) []snes.Read {
 	newModule, newSubModule, newSubSubModule := Module(g.wram[0x10]), g.wram[0x11], g.wram[0xB0]
 	if local.Module != newModule || local.SubModule != newSubModule {
 		log.Printf(
-			"alttp: module [%02x,%02x] -> [%02x,%02x]\n",
+			"smz3: module [%02x,%02x] -> [%02x,%02x]\n",
 			local.Module,
 			local.SubModule,
 			newModule,
@@ -348,7 +348,7 @@ func (g *Game) readMainComplete(rsps []snes.Response) []snes.Read {
 	dungeonRoom := g.wramU16(0xA0)
 	if local.OverworldArea != overworldArea || local.DungeonRoom != dungeonRoom {
 		log.Printf(
-			"alttp: supertile[overworld,underworld]: [%04x,%04x] -> [%04x,%04x]\n",
+			"smz3: supertile[overworld,underworld]: [%04x,%04x] -> [%04x,%04x]\n",
 			local.OverworldArea,
 			local.DungeonRoom,
 			overworldArea,
@@ -357,7 +357,7 @@ func (g *Game) readMainComplete(rsps []snes.Response) []snes.Read {
 	}
 	local.OverworldArea, local.DungeonRoom = overworldArea, dungeonRoom
 
-	// TODO: fix this calculation to be compatible with alttpo
+	// TODO: fix this calculation to be compatible with smz3o
 	inDarkWorld := uint32(0)
 	if overworldArea&0x40 != 0 {
 		inDarkWorld = 1 << 17
@@ -366,7 +366,7 @@ func (g *Game) readMainComplete(rsps []snes.Response) []snes.Read {
 	dungeon := g.wramU16(0x040C)
 	if local.Dungeon != dungeon {
 		log.Printf(
-			"alttp: dungeon: %#04x -> %#04x\n",
+			"smz3: dungeon: %#04x -> %#04x\n",
 			local.Dungeon,
 			dungeon,
 		)
