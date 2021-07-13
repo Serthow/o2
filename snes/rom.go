@@ -121,7 +121,7 @@ func NewROM(name string, contents []byte) (r *ROM, err error) {
 		return nil, fmt.Errorf("ROM file not big enough to contain SNES header")
 	}
 
-	headerOffset := uint32(0x00FFB0)
+	headerOffset := uint32(0x007FB0)
 
 	r = &ROM{
 		Name:         name,
@@ -129,8 +129,26 @@ func NewROM(name string, contents []byte) (r *ROM, err error) {
 		HeaderOffset: headerOffset,
 	}
 
-	err = r.ReadHeader()
+  err = r.ReadHeader()
+
+
+  // if not valid header for lorom, try hirom
+  if !IsAscii(r.Header.Title[:]){
+    headerOffset := uint32(0x00FFB0)
+    r.HeaderOffset = headerOffset
+    
+    err = r.ReadHeader()
+  }
 	return
+}
+
+func IsAscii(s []byte) (b bool){
+  for i := 0; i < len(s); i++{
+    if s[i] < 0x20 || s[i] > 0x7e {
+      return false
+    }
+  }
+  return true
 }
 
 func (r *ROM) ReadHeader() (err error) {
@@ -247,7 +265,10 @@ func (r *ROM) RAMSize() uint32 {
 
 func (r *ROM) BusAddressToPC(busAddr uint32) uint32 {
 	// TODO: determine based on LoROM/HiROM mapping from header
-  return busAddr
+  // loosely checking for a type on the rom, only handles ExHiRom (CartridgeType == 5) and LoROM for now
+  if r.Header.CartridgeType == 5 {
+    return (busAddr + 0x400000) % 0x1000000
+  }
 	return lorom.BusAddressToPC(busAddr)
 }
 
@@ -285,11 +306,17 @@ func (r *ROM) BusReader(busAddr uint32) io.Reader {
 	if page < 0x8000 {
 		return alwaysErrorInstance
 	}
+  
+  bank := busAddr >> 16
+	pcStart := (bank << 15) | (page - 0x8000)
+	pcEnd := (bank << 15) | 0x7FFF
+
+  if r.Header.CartridgeType == 5 {
+    pcStart = (bank << 16) | (page)
+    pcEnd = (bank << 16) | 0xFFFF  
+  }
 
 	// Return a reader over the ROM contents up to the next bank to prevent accidental overflow:
-	bank := busAddr >> 16
-	pcStart := (bank << 16) | (page)
-	pcEnd := (bank << 16) | 0xFFFF
 	return bytes.NewReader(r.Contents[pcStart:pcEnd])
 }
 
@@ -318,10 +345,17 @@ func (r *ROM) BusWriter(busAddr uint32) io.Writer {
 	if page < 0x8000 {
 		return alwaysErrorInstance
 	}
-
-	// Return a reader over the ROM contents up to the next bank to prevent accidental overflow:
-	bank := busAddr >> 16
+  
+    bank := busAddr >> 16
 	pcStart := (bank << 15) | (page - 0x8000)
 	pcEnd := (bank << 15) | 0x7FFF
+
+  if r.Header.CartridgeType == 5 {
+    bank = busAddr >> 16
+    pcStart = (bank << 16) | (page)
+    pcEnd = (bank << 16) | 0xFFFF  
+  }
+
+	// Return a reader over the ROM contents up to the next bank to prevent accidental overflow:
 	return &busWriter{r, busAddr, pcStart, pcEnd, 0}
 }

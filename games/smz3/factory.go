@@ -15,7 +15,6 @@ var factory *Factory
 func FactoryInstance() *Factory { return factory }
 
 func (f *Factory) IsROMSupported(rom *snes.ROM) bool {
-  log.Printf("ROM ID Values", rom.Header.HeaderVersion(), rom.Header.MapMode, rom.Header.ROMSize, rom.Header.OldMakerCode)
 	if rom.Header.HeaderVersion() != 1 {
     log.Printf("HeaderVersion Failed", rom.Header.HeaderVersion())
 		return false
