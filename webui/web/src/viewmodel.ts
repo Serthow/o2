@@ -76,6 +76,19 @@ export interface GameALTTPViewModel extends GameViewModel {
     syncTunicColor: boolean;
 }
 
+export interface GameSMZ3ViewModel extends GameViewModel {
+    playerColor: number;
+    syncItems: boolean;
+    syncDungeonItems: boolean;
+    syncProgress: boolean;
+    syncHearts: boolean;
+    syncSmallKeys: boolean;
+    syncUnderworld: boolean;
+    syncOverworld: boolean;
+    syncChests: boolean;
+    syncTunicColor: boolean;
+}
+
 export type GameViewProps = {
     ch: CommandHandler;
     vm: ViewModel;

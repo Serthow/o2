@@ -3,9 +3,11 @@ import {TopLevelProps} from "./index";
 
 // import specific game views:
 import {GameViewALTTP} from "./games/alttp";
+import {GameViewSMZ3} from "./games/smz3";
 
 const gameViews: { [gameName: string]: GameViewComponent } = {
-    "ALTTP": GameViewALTTP
+    "ALTTP": GameViewALTTP,
+    "SMZ3": GameViewSMZ3
 };
 
 function GameView({ch, vm}: GameViewProps) {

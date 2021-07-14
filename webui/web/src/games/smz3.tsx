@@ -1,10 +1,10 @@
-import {GameALTTPViewModel, GameViewProps} from "../viewmodel";
+import {GameSMZ3ViewModel, GameViewProps} from "../viewmodel";
 import {useEffect, useRef, useState} from "preact/hooks";
 import {Fragment} from "preact";
 import {setField} from "../util";
 
-export function GameViewALTTP({ch, vm}: GameViewProps) {
-    const game = vm.game as GameALTTPViewModel;
+export function GameViewSMZ3({ch, vm}: GameViewProps) {
+    const game = vm.game as GameSMZ3ViewModel;
 
     const [colorRed, setcolorRed] = useState(31);
     const [colorGreen, setcolorGreen] = useState(31);
