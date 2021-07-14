@@ -265,8 +265,8 @@ func (r *ROM) RAMSize() uint32 {
 
 func (r *ROM) BusAddressToPC(busAddr uint32) uint32 {
 	// TODO: determine based on LoROM/HiROM mapping from header
-  // loosely checking for a type on the rom, only handles ExHiRom (CartridgeType == 5) and LoROM for now
-  if r.Header.CartridgeType == 5 {
+  // loosely checking for a type on the rom, only handles ExHiRom (CartridgeType == 2) and LoROM for now
+  if r.Header.CartridgeType == 2 {
     return (busAddr + 0x400000) % 0x1000000
   }
 	return lorom.BusAddressToPC(busAddr)
@@ -311,9 +311,10 @@ func (r *ROM) BusReader(busAddr uint32) io.Reader {
 	pcStart := (bank << 15) | (page - 0x8000)
 	pcEnd := (bank << 15) | 0x7FFF
 
-  if r.Header.CartridgeType == 5 {
-    pcStart = (bank << 16) | (page)
-    pcEnd = (bank << 16) | 0xFFFF  
+  if r.Header.CartridgeType == 2 {
+    pcBank := ((bank + 0x40) % 0x100)
+    pcStart = (pcBank<< 16) | (page)
+    pcEnd = (pcBank << 16) | 0xFFFF  
   }
 
 	// Return a reader over the ROM contents up to the next bank to prevent accidental overflow:
@@ -346,14 +347,14 @@ func (r *ROM) BusWriter(busAddr uint32) io.Writer {
 		return alwaysErrorInstance
 	}
   
-    bank := busAddr >> 16
+  bank := busAddr >> 16
 	pcStart := (bank << 15) | (page - 0x8000)
 	pcEnd := (bank << 15) | 0x7FFF
 
-  if r.Header.CartridgeType == 5 {
-    bank = busAddr >> 16
-    pcStart = (bank << 16) | (page)
-    pcEnd = (bank << 16) | 0xFFFF  
+  if r.Header.CartridgeType == 2 {
+    pcBank := ((bank + 0x40) % 0x100)
+    pcStart = (pcBank<< 16) | (page)
+    pcEnd = (pcBank << 16) | 0xFFFF   
   }
 
 	// Return a reader over the ROM contents up to the next bank to prevent accidental overflow:

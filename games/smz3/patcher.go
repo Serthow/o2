@@ -116,7 +116,7 @@ func (p *Patcher) Patch() (err error) {
 	}
 
 	// frame hook: was 0x008056
-	const frameHook = 0x008056
+	const frameHook = 0xC7FA00
 	// 008056 is 22 B5 80 00   JSL GameModes
 	p.readAt(frameHook)
 	var frameJSL []byte
@@ -125,7 +125,7 @@ func (p *Patcher) Patch() (err error) {
 		return
 	}
 	if frameJSL[0] != 0x22 {
-		return fmt.Errorf("frame hook $008056 does not contain a JSL instruction: %s", hex.Dump(frameJSL))
+		return fmt.Errorf("frame hook $C7FA00 does not contain a JSL instruction: %s", hex.Dump(frameJSL))
 	}
 	gameModes := frameJSL[1:]
 
