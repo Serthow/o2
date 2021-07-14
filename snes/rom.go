@@ -131,12 +131,9 @@ func NewROM(name string, contents []byte) (r *ROM, err error) {
 
   err = r.ReadHeader()
 
-
   // if not valid header for lorom, try hirom
   if !IsAscii(r.Header.Title[:]){
-    headerOffset := uint32(0x00FFB0)
-    r.HeaderOffset = headerOffset
-    
+    r.HeaderOffset = uint32(0x00FFB0)
     err = r.ReadHeader()
   }
 	return
@@ -265,8 +262,8 @@ func (r *ROM) RAMSize() uint32 {
 
 func (r *ROM) BusAddressToPC(busAddr uint32) uint32 {
 	// TODO: determine based on LoROM/HiROM mapping from header
-  // loosely checking for a type on the rom, only handles ExHiRom (CartridgeType == 2) and LoROM for now
-  if r.Header.CartridgeType == 2 {
+  // loosely checking for a type on the rom, only handles ExHiRom (MapMode == 0x35) and LoROM for now
+  if r.Header.MapMode == 0x35 {
     return (busAddr + 0x400000) % 0x1000000
   }
 	return lorom.BusAddressToPC(busAddr)
@@ -311,7 +308,7 @@ func (r *ROM) BusReader(busAddr uint32) io.Reader {
 	pcStart := (bank << 15) | (page - 0x8000)
 	pcEnd := (bank << 15) | 0x7FFF
 
-  if r.Header.CartridgeType == 2 {
+  if r.Header.MapMode == 0x35 {
     pcBank := ((bank + 0x40) % 0x100)
     pcStart = (pcBank<< 16) | (page)
     pcEnd = (pcBank << 16) | 0xFFFF  
@@ -351,7 +348,7 @@ func (r *ROM) BusWriter(busAddr uint32) io.Writer {
 	pcStart := (bank << 15) | (page - 0x8000)
 	pcEnd := (bank << 15) | 0x7FFF
 
-  if r.Header.CartridgeType == 2 {
+  if r.Header.MapMode == 0x35 {
     pcBank := ((bank + 0x40) % 0x100)
     pcStart = (pcBank<< 16) | (page)
     pcEnd = (pcBank << 16) | 0xFFFF   
